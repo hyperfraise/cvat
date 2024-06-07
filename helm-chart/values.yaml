@@ -278,9 +278,9 @@ postgresql:
   enabled: true # false for external db
   external:
     # Ignored if an empty value is set
-    host: ""
+    host: 127.0.0.1
     # Ignored if an empty value is set
-    port: ""
+    port: 5432
   # If not external following config will be applied by default
   auth:
     existingSecret: "{{ .Release.Name }}-postgres-secret"

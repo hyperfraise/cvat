@@ -15,6 +15,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.0/ref/settings/
 """
 
+from cvat.rq_patching import update_started_job_registry_cleanup
+from django.core.exceptions import ImproperlyConfigured
+from pathlib import Path
 import mimetypes
 import os
 import sys
@@ -31,15 +34,14 @@ from cvat import __version__
 
 mimetypes.add_type("application/wasm", ".wasm", True)
 
-from pathlib import Path
-
-from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = str(Path(__file__).parents[2])
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = os.environ.get(
+    'ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 INTERNAL_IPS = ['127.0.0.1']
+
 
 def generate_secret_key():
     """
@@ -53,7 +55,7 @@ def generate_secret_key():
     if not os.path.isdir(keys_dir):
         os.mkdir(keys_dir)
 
-    secret_key_fname = 'secret_key.py' # nosec
+    secret_key_fname = 'secret_key.py'  # nosec
 
     with tempfile.NamedTemporaryFile(
         mode='wt', dir=keys_dir, prefix=secret_key_fname + ".",
@@ -72,9 +74,10 @@ def generate_secret_key():
             # Discard ours and use theirs.
             pass
 
+
 try:
     sys.path.append(BASE_DIR)
-    from keys.secret_key import SECRET_KEY # pylint: disable=unused-import
+    from keys.secret_key import SECRET_KEY  # pylint: disable=unused-import
 except ModuleNotFoundError:
     generate_secret_key()
     from keys.secret_key import SECRET_KEY
@@ -228,8 +231,9 @@ TEMPLATES = [
 
 # IAM settings
 IAM_TYPE = 'BASIC'
-IAM_BASE_EXCEPTION = None # a class which will be used by IAM to report errors
+IAM_BASE_EXCEPTION = None  # a class which will be used by IAM to report errors
 IAM_DEFAULT_ROLE = 'user'
+
 
 IAM_ADMIN_ROLE = 'admin'
 # Index in the list below corresponds to the priority (0 has highest priority)
@@ -256,13 +260,14 @@ ACCOUNT_EMAIL_VERIFICATION = 'none'
 ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
 
 # set UI url to redirect after a successful e-mail confirmation
-#changed from '/auth/login' to '/auth/email-confirmation' for email confirmation message
+# changed from '/auth/login' to '/auth/email-confirmation' for email confirmation message
 ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = '/auth/email-confirmation'
 ACCOUNT_EMAIL_VERIFICATION_SENT_REDIRECT_URL = '/auth/email-verification-sent'
 INCORRECT_EMAIL_CONFIRMATION_URL = '/auth/incorrect-email-confirmation'
 
 # Django-RQ
 # https://github.com/rq/django-rq
+
 
 class CVAT_QUEUES(Enum):
     IMPORT_DATA = 'import'
@@ -273,6 +278,7 @@ class CVAT_QUEUES(Enum):
     QUALITY_REPORTS = 'quality_reports'
     ANALYTICS_REPORTS = 'analytics_reports'
     CLEANING = 'cleaning'
+
 
 redis_inmem_host = os.getenv('CVAT_REDIS_INMEM_HOST', 'localhost')
 redis_inmem_port = os.getenv('CVAT_REDIS_INMEM_PORT', 6379)
@@ -327,7 +333,7 @@ NUCLIO = {
     'DEFAULT_TIMEOUT': int(os.getenv('CVAT_NUCLIO_DEFAULT_TIMEOUT', 120)),
     'FUNCTION_NAMESPACE': os.getenv('CVAT_NUCLIO_FUNCTION_NAMESPACE', 'nuclio'),
     'INVOKE_METHOD': os.getenv('CVAT_NUCLIO_INVOKE_METHOD',
-        default='dashboard' if 'KUBERNETES_SERVICE_HOST' in os.environ else 'direct'),
+                               default='dashboard' if 'KUBERNETES_SERVICE_HOST' in os.environ else 'direct'),
 }
 
 assert NUCLIO['INVOKE_METHOD'] in {'dashboard', 'direct'}
@@ -345,7 +351,8 @@ COMPRESS_CSS_FILTERS = [
     'compressor.filters.css_default.CssAbsoluteFilter',
     'compressor.filters.cssmin.rCSSMinFilter'
 ]
-COMPRESS_JS_FILTERS = []  # No compression for js files (template literals were compressed bad)
+# No compression for js files (template literals were compressed bad)
+COMPRESS_JS_FILTERS = []
 
 # Password validation
 # https://docs.djangoproject.com/en/2.0/ref/settings/#auth-password-validators
@@ -436,7 +443,8 @@ TMP_FILES_ROOT = os.path.join(DATA_ROOT, 'tmp')
 os.makedirs(TMP_FILES_ROOT, exist_ok=True)
 
 # logging is known to be unreliable with RQ when using async transports
-vector_log_handler = os.getenv('VECTOR_EVENT_HANDLER', 'AsynchronousLogstashHandler')
+vector_log_handler = os.getenv(
+    'VECTOR_EVENT_HANDLER', 'AsynchronousLogstashHandler')
 
 logstash_async_constants.QUEUED_EVENTS_FLUSH_INTERVAL = 2.0
 LOGGING = {
@@ -461,7 +469,7 @@ LOGGING = {
             'level': 'DEBUG',
             'filename': os.path.join(BASE_DIR, 'logs', 'cvat_server.log'),
             'formatter': 'standard',
-            'maxBytes': 1024*1024*50, # 50 MB
+            'maxBytes': 1024*1024*50,  # 50 MB
             'backupCount': 5,
         },
         'dataset_handler': {
@@ -469,7 +477,7 @@ LOGGING = {
             'level': 'DEBUG',
             'filename': os.path.join(BASE_DIR, 'logs', 'cvat_server_dataset.log'),
             'formatter': 'standard',
-            'maxBytes': 1024*1024*50, # 50 MB
+            'maxBytes': 1024*1024*50,  # 50 MB
             'backupCount': 3,
         },
         'vector': {
@@ -534,13 +542,13 @@ redis_ondisk_port = os.getenv('CVAT_REDIS_ONDISK_PORT', 6666)
 redis_ondisk_password = os.getenv('CVAT_REDIS_ONDISK_PASSWORD', '')
 
 CACHES = {
-   'default': {
+    'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
     },
     'media': {
-       'BACKEND' : 'django.core.cache.backends.redis.RedisCache',
-       "LOCATION": f"redis://:{urllib.parse.quote(redis_ondisk_password)}@{redis_ondisk_host}:{redis_ondisk_port}",
-       'TIMEOUT' : 3600 * 24, # 1 day
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        "LOCATION": f"redis://:{urllib.parse.quote(redis_ondisk_password)}@{redis_ondisk_host}:{redis_ondisk_port}",
+        'TIMEOUT': 3600 * 24,  # 1 day
     }
 }
 
@@ -560,7 +568,7 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     'x-organization',
 ]
 
-TUS_MAX_FILE_SIZE = 26843545600 # 25gb
+TUS_MAX_FILE_SIZE = 26843545600  # 25gb
 TUS_DEFAULT_CHUNK_SIZE = 104857600  # 100 mb
 
 # This setting makes request secure if X-Forwarded-Proto: 'https' header is specified by our proxy
@@ -655,7 +663,8 @@ ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = True
 ACCOUNT_ADAPTER = 'cvat.apps.iam.adapters.DefaultAccountAdapterEx'
 
 CVAT_HOST = os.getenv('CVAT_HOST', 'localhost')
-CVAT_BASE_URL = os.getenv('CVAT_BASE_URL', f'http://{CVAT_HOST}:8080').rstrip('/')
+CVAT_BASE_URL = os.getenv(
+    'CVAT_BASE_URL', f'http://{CVAT_HOST}:8080').rstrip('/')
 
 CLICKHOUSE = {
     'events': {
@@ -674,7 +683,8 @@ if (postgres_password_file := os.getenv('CVAT_POSTGRES_PASSWORD_FILE')) is not N
             ' environment variables must not be set at the same time'
         )
 
-    postgres_password = Path(postgres_password_file).read_text(encoding='UTF-8').rstrip('\n')
+    postgres_password = Path(postgres_password_file).read_text(
+        encoding='UTF-8').rstrip('\n')
 else:
     postgres_password = os.getenv('CVAT_POSTGRES_PASSWORD', '')
 
@@ -694,14 +704,15 @@ DATABASES = {
     }
 }
 
-BUCKET_CONTENT_MAX_PAGE_SIZE =  500
+BUCKET_CONTENT_MAX_PAGE_SIZE = 500
 
 IMPORT_CACHE_FAILED_TTL = timedelta(days=30)
 IMPORT_CACHE_SUCCESS_TTL = timedelta(hours=1)
 IMPORT_CACHE_CLEAN_DELAY = timedelta(hours=12)
 
 ASSET_MAX_SIZE_MB = 10
-ASSET_SUPPORTED_TYPES = ('image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf', )
+ASSET_SUPPORTED_TYPES = ('image/jpeg', 'image/png',
+                         'image/webp', 'image/gif', 'application/pdf', )
 ASSET_MAX_IMAGE_SIZE = 1920
 ASSET_MAX_COUNT_PER_GUIDE = 30
 
@@ -712,12 +723,13 @@ SMOKESCREEN_ENABLED = True
 # to check configuration and throw ImproperlyConfigured if thats a case
 EMAIL_BACKEND = None
 
-ONE_RUNNING_JOB_IN_QUEUE_PER_USER = to_bool(os.getenv('ONE_RUNNING_JOB_IN_QUEUE_PER_USER', False))
+ONE_RUNNING_JOB_IN_QUEUE_PER_USER = to_bool(
+    os.getenv('ONE_RUNNING_JOB_IN_QUEUE_PER_USER', False))
 
 # How many chunks can be prepared simultaneously during task creation in case the cache is not used
-CVAT_CONCURRENT_CHUNK_PROCESSING = int(os.getenv('CVAT_CONCURRENT_CHUNK_PROCESSING', 1))
+CVAT_CONCURRENT_CHUNK_PROCESSING = int(
+    os.getenv('CVAT_CONCURRENT_CHUNK_PROCESSING', 1))
 
-from cvat.rq_patching import update_started_job_registry_cleanup
 update_started_job_registry_cleanup()
 
 CLOUD_DATA_DOWNLOADING_MAX_THREADS_NUMBER = 4

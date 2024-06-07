@@ -39,6 +39,7 @@ class CvatPath:
 
     BUILTIN_ATTRS = {'occluded', 'outside', 'keyframe', 'track_id'}
 
+
 class CvatExtractor(Extractor):
     _SUPPORTED_SHAPES = ('box', 'polygon', 'polyline', 'points', 'skeleton')
 
@@ -71,7 +72,8 @@ class CvatExtractor(Extractor):
         return len(self._items)
 
     def get(self, _id, subset=DEFAULT_SUBSET_NAME):
-        assert subset in self._subsets, '{} not in {}'.format(subset, ', '.join(self._subsets))
+        assert subset in self._subsets, '{} not in {}'.format(
+            subset, ', '.join(self._subsets))
         return super().get(_id, subset)
 
     @staticmethod
@@ -100,8 +102,8 @@ class CvatExtractor(Extractor):
                 name, ext = osp.splitext(osp.basename(file))
                 if ext.lower() in CvatPath.MEDIA_EXTS:
                     items[(subset, name)] = DatasetItem(id=name, annotations=[],
-                        image=Image(path=file), subset=subset or DEFAULT_SUBSET_NAME,
-                    )
+                                                        image=Image(path=file), subset=subset or DEFAULT_SUBSET_NAME,
+                                                        )
 
         if subsets == [DEFAULT_SUBSET_NAME] and not osp.isdir(osp.join(image_dir, DEFAULT_SUBSET_NAME)):
             parse_image_dir(osp.join(image_dir, '*.*'), None)
@@ -225,20 +227,26 @@ class CvatExtractor(Extractor):
                     else:
                         shape_element['points'] = []
                         for pair in el.attrib['points'].split(';'):
-                            shape_element['points'].extend(map(float, pair.split(',')))
+                            shape_element['points'].extend(
+                                map(float, pair.split(',')))
 
                     if el.tag == 'points' and el.attrib.get('occluded') == '1':
-                        shape_element['visibility'] = [Points.Visibility.hidden] * (len(shape_element['points']) // 2)
+                        shape_element['visibility'] = [
+                            Points.Visibility.hidden] * (len(shape_element['points']) // 2)
                     else:
-                        shape_element['occluded'] = (el.attrib.get('occluded') == '1')
+                        shape_element['occluded'] = (
+                            el.attrib.get('occluded') == '1')
 
                     if el.tag == 'points' and el.attrib.get('outside') == '1':
-                        shape_element['visibility'] = [Points.Visibility.absent] * (len(shape_element['points']) // 2)
+                        shape_element['visibility'] = [
+                            Points.Visibility.absent] * (len(shape_element['points']) // 2)
                     else:
-                        shape_element['outside'] = (el.attrib.get('outside') == '1')
+                        shape_element['outside'] = (
+                            el.attrib.get('outside') == '1')
 
                     if track:
-                        shape_element['keyframe'] = (el.attrib.get('keyframe') == '1')
+                        shape_element['keyframe'] = (
+                            el.attrib.get('keyframe') == '1')
                         if shape_element['keyframe']:
                             track_elements.append(shape_element)
                     else:
@@ -275,12 +283,14 @@ class CvatExtractor(Extractor):
                         if shape["type"] == "skeleton" and track_elements:
                             shape["keyframe"] = True
                             track_shapes[shape['frame']] = shape
-                            track_shapes[shape['frame']]['elements'] = track_elements
+                            track_shapes[shape['frame']
+                                         ]['elements'] = track_elements
                             track_elements = None
                         elif shape["type"] != "skeleton":
                             track_shapes[shape['frame']] = shape
                     else:
-                        frame_desc = items.get((subset, shape['frame']), {'annotations': []})
+                        frame_desc = items.get(
+                            (subset, shape['frame']), {'annotations': []})
                         frame_desc['annotations'].append(
                             cls._parse_shape_ann(shape, categories))
                         items[(subset, shape['frame'])] = frame_desc
@@ -288,20 +298,23 @@ class CvatExtractor(Extractor):
                     shape = None
 
                 elif el.tag == 'tag':
-                    frame_desc = items.get((subset, tag['frame']), {'annotations': []})
+                    frame_desc = items.get(
+                        (subset, tag['frame']), {'annotations': []})
                     frame_desc['annotations'].append(
                         cls._parse_tag_ann(tag, categories))
                     items[(subset, tag['frame'])] = frame_desc
                     tag = None
                 elif el.tag == 'track':
                     for track_shape in track_shapes.values():
-                        frame_desc = items.get((subset, track_shape['frame']), {'annotations': []})
+                        frame_desc = items.get(
+                            (subset, track_shape['frame']), {'annotations': []})
                         frame_desc['annotations'].append(
                             cls._parse_shape_ann(track_shape, categories))
                         items[(subset, track_shape['frame'])] = frame_desc
                     track = None
                 elif el.tag == 'image':
-                    frame_desc = items.get((subset, image['frame']), {'annotations': []})
+                    frame_desc = items.get(
+                        (subset, image['frame']), {'annotations': []})
                     frame_desc.update({
                         'name': image.get('name'),
                         'height': image.get('height'),
@@ -332,6 +345,7 @@ class CvatExtractor(Extractor):
         # Recursive descent parser
         el = None
         states = ['annotations']
+
         def accepted(expected_state, tag, next_state=None):
             state = states[-1]
             if state == expected_state and el is not None and el.tag == tag:
@@ -340,6 +354,7 @@ class CvatExtractor(Extractor):
                 states.append(next_state)
                 return True
             return False
+
         def consumed(expected_state, tag):
             state = states[-1]
             if state == expected_state and el is not None and el.tag == tag:
@@ -349,37 +364,57 @@ class CvatExtractor(Extractor):
 
         for ev, el in context:
             if ev == 'start':
-                if accepted('annotations', 'meta'): pass
-                elif accepted('meta', 'task'): pass
-                elif accepted('meta', 'project'): pass
-                elif accepted('project', 'tasks'): pass
-                elif accepted('tasks', 'task'): pass
-                elif accepted('task', 'id', next_state='task_id'): pass
-                elif accepted('task', 'segment'): pass
-                elif accepted('task', 'mode'): pass
-                elif accepted('task', 'original_size'): pass
-                elif accepted('original_size', 'height', next_state='frame_height'): pass
-                elif accepted('original_size', 'width', next_state='frame_width'): pass
-                elif accepted('task', 'labels'): pass
-                elif accepted('project', 'labels'): pass
+                if accepted('annotations', 'meta'):
+                    pass
+                elif accepted('meta', 'task'):
+                    pass
+                elif accepted('meta', 'project'):
+                    pass
+                elif accepted('project', 'tasks'):
+                    pass
+                elif accepted('tasks', 'task'):
+                    pass
+                elif accepted('task', 'id', next_state='task_id'):
+                    pass
+                elif accepted('task', 'segment'):
+                    pass
+                elif accepted('task', 'mode'):
+                    pass
+                elif accepted('task', 'original_size'):
+                    pass
+                elif accepted('original_size', 'height', next_state='frame_height'):
+                    pass
+                elif accepted('original_size', 'width', next_state='frame_width'):
+                    pass
+                elif accepted('task', 'labels'):
+                    pass
+                elif accepted('project', 'labels'):
+                    pass
                 elif accepted('labels', 'label'):
-                    label = { 'name': None, 'attributes': [] }
-                elif accepted('label', 'name', next_state='label_name'): pass
-                elif accepted('label', 'attributes'): pass
-                elif accepted('attributes', 'attribute'): pass
-                elif accepted('attribute', 'name', next_state='attr_name'): pass
-                elif accepted('attribute', 'input_type', next_state='attr_type'): pass
+                    label = {'name': None, 'attributes': []}
+                elif accepted('label', 'name', next_state='label_name'):
+                    pass
+                elif accepted('label', 'attributes'):
+                    pass
+                elif accepted('attributes', 'attribute'):
+                    pass
+                elif accepted('attribute', 'name', next_state='attr_name'):
+                    pass
+                elif accepted('attribute', 'input_type', next_state='attr_type'):
+                    pass
                 elif accepted('annotations', 'image') or \
-                     accepted('annotations', 'track') or \
-                     accepted('annotations', 'tag'):
+                        accepted('annotations', 'track') or \
+                        accepted('annotations', 'tag'):
                     break
                 else:
                     pass
             elif ev == 'end':
                 if consumed('meta', 'meta'):
                     break
-                elif consumed('project', 'project'): pass
-                elif consumed('tasks', 'tasks'): pass
+                elif consumed('project', 'project'):
+                    pass
+                elif consumed('tasks', 'tasks'):
+                    pass
                 elif consumed('task', 'task'):
                     tasks_info[task_id] = {
                         'frame_size': frame_size,
@@ -389,10 +424,12 @@ class CvatExtractor(Extractor):
                     mode = None
                 elif consumed('task_id', 'id'):
                     task_id = int(el.text)
-                elif consumed('segment', 'segment'): pass
+                elif consumed('segment', 'segment'):
+                    pass
                 elif consumed('mode', 'mode'):
                     mode = el.text
-                elif consumed('original_size', 'original_size'): pass
+                elif consumed('original_size', 'original_size'):
+                    pass
                 elif consumed('frame_height', 'height'):
                     frame_size[0] = int(el.text)
                 elif consumed('frame_width', 'width'):
@@ -403,12 +440,15 @@ class CvatExtractor(Extractor):
                     label['attributes'].append({'name': el.text})
                 elif consumed('attr_type', 'input_type'):
                     label['attributes'][-1]['input_type'] = el.text
-                elif consumed('attribute', 'attribute'): pass
-                elif consumed('attributes', 'attributes'): pass
+                elif consumed('attribute', 'attribute'):
+                    pass
+                elif consumed('attributes', 'attributes'):
+                    pass
                 elif consumed('label', 'label'):
                     labels[label['name']] = label['attributes']
                     label = None
-                elif consumed('labels', 'labels'): pass
+                elif consumed('labels', 'labels'):
+                    pass
                 else:
                     pass
 
@@ -459,22 +499,22 @@ class CvatExtractor(Extractor):
 
         if ann_type == 'polyline':
             return PolyLine(points, label=label_id, z_order=z_order,
-                id=ann_id, attributes=attributes, group=group)
+                            id=ann_id, attributes=attributes, group=group)
 
         elif ann_type == 'polygon':
             return Polygon(points, label=label_id, z_order=z_order,
-                id=ann_id, attributes=attributes, group=group)
+                           id=ann_id, attributes=attributes, group=group)
 
         elif ann_type == 'points':
             visibility = ann.get('visibility', None)
             return Points(points, visibility, label=label_id, z_order=z_order,
-                id=ann_id, attributes=attributes, group=group)
+                          id=ann_id, attributes=attributes, group=group)
 
         elif ann_type == 'box':
             x, y = points[0], points[1]
             w, h = points[2] - x, points[3] - y
             return Bbox(x, y, w, h, label=label_id, z_order=z_order,
-                id=ann_id, attributes=attributes, group=group)
+                        id=ann_id, attributes=attributes, group=group)
 
         elif ann_type == 'skeleton':
             elements = []
@@ -482,10 +522,11 @@ class CvatExtractor(Extractor):
                 elements.append(cls._parse_shape_ann(element, categories))
 
             return Skeleton(elements, label=label_id, z_order=z_order,
-                id=ann_id, attributes=attributes, group=group)
+                            id=ann_id, attributes=attributes, group=group)
 
         else:
-            raise NotImplementedError("Unknown annotation type '%s'" % ann_type)
+            raise NotImplementedError(
+                "Unknown annotation type '%s'" % ann_type)
 
     @classmethod
     def _parse_tag_ann(cls, ann, categories):
@@ -498,7 +539,8 @@ class CvatExtractor(Extractor):
     def _load_items(self, parsed, image_items):
         for (subset, frame_id), item_desc in parsed.items():
             name = item_desc.get('name', 'frame_%06d.PNG' % int(frame_id))
-            image = osp.join(self._images_dir, subset, name) if subset else osp.join(self._images_dir, name)
+            image = osp.join(self._images_dir, subset, name) if subset else osp.join(
+                self._images_dir, name)
             image_size = (item_desc.get('height'), item_desc.get('width'))
             if all(image_size):
                 image = Image(path=image, size=tuple(map(int, image_size)))
@@ -512,12 +554,15 @@ class CvatExtractor(Extractor):
             image_items[(subset, osp.splitext(name)[0])] = di
         return image_items
 
+
 dm_env.extractors.register('cvat', CvatExtractor)
+
 
 class CvatImporter(Importer):
     @classmethod
     def find_sources(cls, path):
         return cls._find_sources_recursive(path, '.xml', 'cvat')
+
 
 dm_env.importers.register('cvat', CvatImporter)
 
@@ -526,8 +571,10 @@ def pairwise(iterable):
     a = iter(iterable)
     return zip(a, a)
 
+
 def create_xml_dumper(file_object):
     from xml.sax.saxutils import XMLGenerator
+
     class XmlAnnotationWriter:
         def __init__(self, file):
             self.version = "1.1"
@@ -535,7 +582,7 @@ def create_xml_dumper(file_object):
             self.xmlgen = XMLGenerator(self.file, 'utf-8')
             self._level = 0
 
-        def _indent(self, newline = True):
+        def _indent(self, newline=True):
             if newline:
                 self.xmlgen.ignorableWhitespace("\n")
             self.xmlgen.ignorableWhitespace("  " * self._level)
@@ -709,8 +756,8 @@ def create_xml_dumper(file_object):
         def close_document(self):
             self.xmlgen.endDocument()
 
-
     return XmlAnnotationWriter(file_object)
+
 
 def dump_as_cvat_annotation(dumper, annotations):
     dumper.open_root()
@@ -765,8 +812,10 @@ def dump_as_cvat_annotation(dumper, annotations):
                     dump_data.update(OrderedDict([
                         ("cx", "{:.2f}".format(shape.points[0])),
                         ("cy", "{:.2f}".format(shape.points[1])),
-                        ("rx", "{:.2f}".format(shape.points[2] - shape.points[0])),
-                        ("ry", "{:.2f}".format(shape.points[1] - shape.points[3]))
+                        ("rx", "{:.2f}".format(
+                            shape.points[2] - shape.points[0])),
+                        ("ry", "{:.2f}".format(
+                            shape.points[1] - shape.points[3]))
                     ]))
 
                     if shape.rotation:
@@ -794,11 +843,14 @@ def dump_as_cvat_annotation(dumper, annotations):
                     ]))
                 elif shape.type == "mask":
                     dump_data.update(OrderedDict([
-                        ("rle", f"{list(int (v) for v in shape.points[:-4])}"[1:-1]),
+                        ("rle",
+                         f"{list(int (v) for v in shape.points[:-4])}"[1:-1]),
                         ("left", f"{int(shape.points[-4])}"),
                         ("top", f"{int(shape.points[-3])}"),
-                        ("width", f"{int(shape.points[-2] - shape.points[-4]) + 1}"),
-                        ("height", f"{int(shape.points[-1] - shape.points[-3]) + 1}"),
+                        ("width",
+                         f"{int(shape.points[-2] - shape.points[-4]) + 1}"),
+                        ("height",
+                         f"{int(shape.points[-1] - shape.points[-3]) + 1}"),
                     ]))
                 elif shape.type != 'skeleton':
                     dump_data.update(OrderedDict([
@@ -882,6 +934,7 @@ def dump_as_cvat_annotation(dumper, annotations):
         dumper.close_image()
     dumper.close_root()
 
+
 def dump_as_cvat_interpolation(dumper, annotations):
     dumper.open_root()
     dumper.add_meta(annotations.meta)
@@ -960,7 +1013,7 @@ def dump_as_cvat_interpolation(dumper, annotations):
         elif shape.type != "skeleton":
             dump_data.update(OrderedDict([
                 ("points", ';'.join(['{:.2f},{:.2f}'.format(x, y)
-                    for x,y in pairwise(shape.points)]))
+                                     for x, y in pairwise(shape.points)]))
             ]))
 
         if label is None:
@@ -1025,7 +1078,8 @@ def dump_as_cvat_interpolation(dumper, annotations):
         ])
 
         if hasattr(track, 'task_id'):
-            task, = filter(lambda task: task.id == track.task_id, annotations.tasks)
+            task, = filter(lambda task: task.id ==
+                           track.task_id, annotations.tasks)
             dump_data.update(OrderedDict([
                 ('task_id', str(track.task_id)),
                 ('subset', get_defaulted_subset(task.subset, annotations.subsets)),
@@ -1040,7 +1094,8 @@ def dump_as_cvat_interpolation(dumper, annotations):
             for element_shape in element_track.shapes:
                 if element_shape.frame not in element_shapes:
                     element_shapes[element_shape.frame] = []
-                element_shapes[element_shape.frame].append((element_shape, element_track.label))
+                element_shapes[element_shape.frame].append(
+                    (element_shape, element_track.label))
 
         for shape in track.shapes:
             dump_shape(shape, element_shapes)
@@ -1056,10 +1111,11 @@ def dump_as_cvat_interpolation(dumper, annotations):
         frame_step = annotations.frame_step if not isinstance(annotations, ProjectData) \
             else annotations.frame_step[shape.task_id]
         if not isinstance(annotations, ProjectData):
-            stop_frame = int(annotations.meta[annotations.META_FIELD]['stop_frame'])
+            stop_frame = int(
+                annotations.meta[annotations.META_FIELD]['stop_frame'])
         else:
             task_meta = list(filter(lambda task: int(task[1]['id']) == shape.task_id,
-                annotations.meta[annotations.META_FIELD]['tasks']))[0][1]
+                                    annotations.meta[annotations.META_FIELD]['tasks']))[0][1]
             stop_frame = int(task_meta['stop_frame'])
         track = {
             'label': shape.label,
@@ -1076,20 +1132,20 @@ def dump_as_cvat_interpolation(dumper, annotations):
                 frame=shape.frame,
                 attributes=shape.attributes,
             )] +
-            ( # add a finishing frame if it does not hop over the last frame
-            [annotations.TrackedShape(
-                type=shape.type,
-                points=shape.points,
-                rotation=shape.rotation,
-                occluded=shape.occluded,
-                outside=True,
-                keyframe=True,
-                z_order=shape.z_order,
-                frame=shape.frame + frame_step,
-                attributes=shape.attributes,
-            )] if shape.frame + frame_step < \
-                    stop_frame \
-               else []
+            (  # add a finishing frame if it does not hop over the last frame
+                [annotations.TrackedShape(
+                    type=shape.type,
+                    points=shape.points,
+                    rotation=shape.rotation,
+                    occluded=shape.occluded,
+                    outside=True,
+                    keyframe=True,
+                    z_order=shape.z_order,
+                    frame=shape.frame + frame_step,
+                    attributes=shape.attributes,
+                )] if shape.frame + frame_step < \
+                stop_frame \
+                else []
             ),
             'elements': [annotations.Track(
                 label=element.label,
@@ -1106,20 +1162,20 @@ def dump_as_cvat_interpolation(dumper, annotations):
                     frame=element.frame,
                     attributes=element.attributes,
                 )] +
-                ( # add a finishing frame if it does not hop over the last frame
-                [annotations.TrackedShape(
-                    type=element.type,
-                    points=element.points,
-                    rotation=element.rotation,
-                    occluded=element.occluded,
-                    outside=True,
-                    keyframe=True,
-                    z_order=element.z_order,
-                    frame=element.frame + frame_step,
-                    attributes=element.attributes,
-                )] if element.frame + frame_step < \
-                        stop_frame \
-                else []
+                (  # add a finishing frame if it does not hop over the last frame
+                    [annotations.TrackedShape(
+                        type=element.type,
+                        points=element.points,
+                        rotation=element.rotation,
+                        occluded=element.occluded,
+                        outside=True,
+                        keyframe=True,
+                        z_order=element.z_order,
+                        frame=element.frame + frame_step,
+                        attributes=element.attributes,
+                    )] if element.frame + frame_step < \
+                    stop_frame \
+                    else []
                 ),
                 elements=[],
             ) for element in shape.elements]
@@ -1131,17 +1187,37 @@ def dump_as_cvat_interpolation(dumper, annotations):
         dump_track(counter, annotations.Track(**track))
         counter += 1
 
+    for frame_annotation in annotations.group_by_frame(include_empty=True):
+        for tag in frame_annotation.tags:
+            tag_data = OrderedDict([
+                ("label", tag.label),
+                ("source", tag.source),
+            ])
+            if tag.group:
+                tag_data["group_id"] = str(tag.group)
+            dumper.open_tag(tag_data)
+
+            for attr in tag.attributes:
+                dumper.add_attribute(OrderedDict([
+                    ("name", attr.name),
+                    ("value", attr.value)
+                ]))
+
+            dumper.close_tag()
+
     dumper.close_root()
 
+
 def load_anno(file_object, annotations):
-    supported_shapes = ('box', 'ellipse', 'polygon', 'polyline', 'points', 'cuboid', 'skeleton', 'mask')
+    supported_shapes = ('box', 'ellipse', 'polygon', 'polyline',
+                        'points', 'cuboid', 'skeleton', 'mask')
     context = ElementTree.iterparse(file_object, events=("start", "end"))
     context = iter(context)
     next(context)
 
     track = None
     shape = None
-    shape_element=None
+    shape_element = None
     tag = None
     image_is_opened = False
     attributes = None
@@ -1161,9 +1237,9 @@ def load_anno(file_object, annotations):
                 image_is_opened = True
                 frame_id = annotations.abs_frame_id(match_dm_item(
                     DatasetItem(id=osp.splitext(el.attrib['name'])[0],
-                        attributes={'frame': el.attrib['id']},
-                        image=el.attrib['name']
-                    ),
+                                attributes={'frame': el.attrib['id']},
+                                image=el.attrib['name']
+                                ),
                     instance_data=annotations
                 ))
             elif el.tag in supported_shapes and (track is not None or image_is_opened):
@@ -1230,8 +1306,10 @@ def load_anno(file_object, annotations):
                 elif el.tag == 'ellipse':
                     shape_element['points'].append(el.attrib['cx'])
                     shape_element['points'].append(el.attrib['cy'])
-                    shape_element['points'].append("{:.2f}".format(float(el.attrib['cx']) + float(el.attrib['rx'])))
-                    shape_element['points'].append("{:.2f}".format(float(el.attrib['cy']) - float(el.attrib['ry'])))
+                    shape_element['points'].append("{:.2f}".format(
+                        float(el.attrib['cx']) + float(el.attrib['rx'])))
+                    shape_element['points'].append("{:.2f}".format(
+                        float(el.attrib['cy']) - float(el.attrib['ry'])))
                 elif el.tag == 'cuboid':
                     shape_element['points'].append(el.attrib['xtl1'])
                     shape_element['points'].append(el.attrib['ytl1'])
@@ -1252,17 +1330,20 @@ def load_anno(file_object, annotations):
                     shape_element['points'].append(el.attrib['ybr2'])
                 else:
                     for pair in el.attrib['points'].split(';'):
-                        shape_element['points'].extend(map(float, pair.split(',')))
+                        shape_element['points'].extend(
+                            map(float, pair.split(',')))
 
                 if track is None:
                     shape_element['frame'] = frame_id
                     shape_element['source'] = 'file'
-                    shape['elements'].append(annotations.LabeledShape(**shape_element))
+                    shape['elements'].append(
+                        annotations.LabeledShape(**shape_element))
                 else:
                     shape_element["frame"] = shape['frame']
                     shape_element['keyframe'] = el.attrib['keyframe'] == "1"
                     if shape_element['keyframe']:
-                        track_elements[el.attrib['label']].shapes.append(annotations.TrackedShape(**shape_element))
+                        track_elements[el.attrib['label']].shapes.append(
+                            annotations.TrackedShape(**shape_element))
                 shape_element = None
 
             elif el.tag in supported_shapes:
@@ -1289,14 +1370,18 @@ def load_anno(file_object, annotations):
                 elif el.tag == 'ellipse':
                     shape['points'].append(el.attrib['cx'])
                     shape['points'].append(el.attrib['cy'])
-                    shape['points'].append("{:.2f}".format(float(el.attrib['cx']) + float(el.attrib['rx'])))
-                    shape['points'].append("{:.2f}".format(float(el.attrib['cy']) - float(el.attrib['ry'])))
+                    shape['points'].append("{:.2f}".format(
+                        float(el.attrib['cx']) + float(el.attrib['rx'])))
+                    shape['points'].append("{:.2f}".format(
+                        float(el.attrib['cy']) - float(el.attrib['ry'])))
                 elif el.tag == 'mask':
                     shape['points'] = el.attrib['rle'].split(',')
                     shape['points'].append(el.attrib['left'])
                     shape['points'].append(el.attrib['top'])
-                    shape['points'].append("{}".format(int(el.attrib['left']) + int(el.attrib['width']) - 1))
-                    shape['points'].append("{}".format(int(el.attrib['top']) + int(el.attrib['height']) - 1))
+                    shape['points'].append("{}".format(
+                        int(el.attrib['left']) + int(el.attrib['width']) - 1))
+                    shape['points'].append("{}".format(
+                        int(el.attrib['top']) + int(el.attrib['height']) - 1))
                 elif el.tag == 'cuboid':
                     shape['points'].append(el.attrib['xtl1'])
                     shape['points'].append(el.attrib['ytl1'])
@@ -1358,17 +1443,20 @@ def load_anno(file_object, annotations):
                 tag = None
             el.clear()
 
+
 def dump_task_or_job_anno(dst_file, instance_data, callback):
     dumper = create_xml_dumper(dst_file)
     dumper.open_document()
     callback(dumper, instance_data)
     dumper.close_document()
 
+
 def dump_project_anno(dst_file: BufferedWriter, project_data: ProjectData, callback: Callable):
     dumper = create_xml_dumper(dst_file)
     dumper.open_document()
     callback(dumper, project_data)
     dumper.close_document()
+
 
 def dump_media_files(instance_data: CommonData, img_dir: str, project_data: ProjectData = None):
     ext = ''
@@ -1382,7 +1470,7 @@ def dump_media_files(instance_data: CommonData, img_dir: str, project_data: Proj
         frame_provider.Type.BUFFER)
     for frame_id, (frame_data, _) in zip(instance_data.rel_range, frames):
         if (project_data is not None and (instance_data.db_instance.id, frame_id) in project_data.deleted_frames) \
-            or frame_id in instance_data.deleted_frames:
+                or frame_id in instance_data.deleted_frames:
             continue
         frame_name = instance_data.frame_info[frame_id]['path'] if project_data is None \
             else project_data.frame_info[(instance_data.db_instance.id, frame_id)]['path']
@@ -1390,6 +1478,7 @@ def dump_media_files(instance_data: CommonData, img_dir: str, project_data: Proj
         os.makedirs(osp.dirname(img_path), exist_ok=True)
         with open(img_path, 'wb') as f:
             f.write(frame_data.getvalue())
+
 
 def _export_task_or_job(dst_file, temp_dir, instance_data, anno_callback, save_images=False):
     with open(osp.join(temp_dir, 'annotations.xml'), 'wb') as f:
@@ -1400,38 +1489,43 @@ def _export_task_or_job(dst_file, temp_dir, instance_data, anno_callback, save_i
 
     make_zip_archive(temp_dir, dst_file)
 
+
 def _export_project(dst_file: str, temp_dir: str, project_data: ProjectData,
-    anno_callback: Callable, save_images: bool=False
-):
+                    anno_callback: Callable, save_images: bool = False
+                    ):
     with open(osp.join(temp_dir, 'annotations.xml'), 'wb') as f:
         dump_project_anno(f, project_data, anno_callback)
 
     if save_images:
         for task_data in project_data.task_data:
-            subset = get_defaulted_subset(task_data.db_instance.subset, project_data.subsets)
+            subset = get_defaulted_subset(
+                task_data.db_instance.subset, project_data.subsets)
             subset_dir = osp.join(temp_dir, 'images', subset)
             os.makedirs(subset_dir, exist_ok=True)
             dump_media_files(task_data, subset_dir, project_data)
 
     make_zip_archive(temp_dir, dst_file)
 
+
 @exporter(name='CVAT for video', ext='ZIP', version='1.1')
 def _export_video(dst_file, temp_dir, instance_data, save_images=False):
     if isinstance(instance_data, ProjectData):
         _export_project(dst_file, temp_dir, instance_data,
-            anno_callback=dump_as_cvat_interpolation, save_images=save_images)
+                        anno_callback=dump_as_cvat_interpolation, save_images=save_images)
     else:
         _export_task_or_job(dst_file, temp_dir, instance_data,
-            anno_callback=dump_as_cvat_interpolation, save_images=save_images)
+                            anno_callback=dump_as_cvat_interpolation, save_images=save_images)
+
 
 @exporter(name='CVAT for images', ext='ZIP', version='1.1')
 def _export_images(dst_file, temp_dir, instance_data, save_images=False):
     if isinstance(instance_data, ProjectData):
         _export_project(dst_file, temp_dir, instance_data,
-            anno_callback=dump_as_cvat_annotation, save_images=save_images)
+                        anno_callback=dump_as_cvat_annotation, save_images=save_images)
     else:
         _export_task_or_job(dst_file, temp_dir, instance_data,
-            anno_callback=dump_as_cvat_annotation, save_images=save_images)
+                            anno_callback=dump_as_cvat_annotation, save_images=save_images)
+
 
 @importer(name='CVAT', ext='XML, ZIP', version='1.1')
 def _import(src_file, temp_dir, instance_data, load_data_callback=None, **kwargs):
@@ -1447,7 +1541,8 @@ def _import(src_file, temp_dir, instance_data, load_data_callback=None, **kwargs
                 load_data_callback(dataset, instance_data)
             import_dm_annotations(dataset, instance_data)
         else:
-            anno_paths = glob(osp.join(temp_dir, '**', '*.xml'), recursive=True)
+            anno_paths = glob(
+                osp.join(temp_dir, '**', '*.xml'), recursive=True)
             for p in anno_paths:
                 load_anno(p, instance_data)
     else:
